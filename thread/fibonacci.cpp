@@ -11,7 +11,7 @@ void* generateFibonacci(void* arg) {
     if (n >= 1) arr[0] = 0;
     if (n >= 2) arr[1] = 1;
 
-    for (int i = 2; i < n; i++) {
+    for (int i = 2; i <= n; i++) {
         arr[i] = arr[i - 1] + arr[i - 2];
     }
 
@@ -34,13 +34,13 @@ int main()
     int* data = new int[n + 1];
     data[0] = n;
 
-    thread_t thread;
+    pthread_t thread;
     pthread_create(&thread, nullptr, generateFibonacci, data);
 
     pthread_join(thread, nullptr);
 
     cout << "Fibonacci sequence: ";
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i <= n; i++) {
         cout << data[i + 1] << " ";
     }
     cout << endl;
