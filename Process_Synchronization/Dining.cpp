@@ -1,51 +1,52 @@
-#include <stdio.h>
-#include <pthread.h>
-#include <unistd.h>
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <vector>
+#include <chrono>
 
-#define N 5  // Number of philosophers
+using namespace std;
 
-pthread_mutex_t forks[N];  // Mutex for each fork
+const int N = 5; // Number of philosophers
+mutex forks[N];   // One mutex per fork
 
-void *philosopher(void *num) {
-    int id = *(int *)num;
+void philosopher(int id) {
+    while (true) {
+        cout << "Philosopher " << id << " is thinking.\n";
+        this_thread::sleep_for(chrono::seconds(1));
 
-    while(1) {
-        printf("Philosopher %d is thinking.\n", id);
-        sleep(1);
-
-        // Pick up forks (mutex lock)
-        pthread_mutex_lock(&forks[id]);               // left fork
-        pthread_mutex_lock(&forks[(id + 1) % N]);     // right fork
+        // Deadlock-free fork picking:
+        if (id % 2 == 0) {
+            forks[id].lock();                     // left fork
+            forks[(id + 1) % N].lock();           // right fork
+        } else {
+            forks[(id + 1) % N].lock();           // right fork
+            forks[id].lock();                     // left fork
+        }
 
         // Eating
-        printf("Philosopher %d is eating.\n", id);
-        sleep(2);
+        cout << "Philosopher " << id << " is eating.\n";
+        this_thread::sleep_for(chrono::seconds(2));
 
-        // Put down forks (mutex unlock)
-        pthread_mutex_unlock(&forks[id]);            
-        pthread_mutex_unlock(&forks[(id + 1) % N]);  
+        // Put down forks
+        forks[id].unlock();
+        forks[(id + 1) % N].unlock();
 
-        printf("Philosopher %d finished eating and is thinking again.\n", id);
+        cout << "Philosopher " << id << " finished eating and is thinking again.\n";
     }
 }
 
 int main() {
-    pthread_t thread_id[N];
-    int phil_ids[N];
-
-    // Initialize mutexes
-    for(int i=0; i<N; i++)
-        pthread_mutex_init(&forks[i], NULL);
+    vector<thread> philosophers;
 
     // Create philosopher threads
-    for(int i=0; i<N; i++) {
-        phil_ids[i] = i;
-        pthread_create(&thread_id[i], NULL, philosopher, &phil_ids[i]);
+    for (int i = 0; i < N; i++) {
+        philosophers.push_back(thread(philosopher, i));
     }
 
-    // Join threads (never happens here)
-    for(int i=0; i<N; i++)
-        pthread_join(thread_id[i], NULL);
+    // Join threads (infinite loop, won't actually join)
+    for (auto &t : philosophers) {
+        t.join();
+    }
 
     return 0;
 }
